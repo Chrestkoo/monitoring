@@ -1,0 +1,63 @@
+services:
+
+  podman-exporter:
+    image: quay.io/navidys/prometheus-podman-exporter:latest
+    container_name: prometheus-podman-exporter
+    restart: unless-stopped
+    security_opt:
+      - label=disable
+    environment:
+      CONTAINER_HOST: unix:///run/user/1000/podman/podman.sock
+    volumes:
+      - /run/user/1000/podman/podman.sock:/run/user/1000/podman/podman.sock
+    ports:
+      - "9882:9882"
+
+  dcgm-exporter:
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
+    container_name: dcgm-exporter
+    restart: unless-stopped
+    privileged: true
+    security_opt:
+      - label=disable
+    devices:
+      - nvidia.com/gpu=all
+    ports:
+      - "9400:9400"
+    environment:
+      DCGM_EXPORTER_LISTEN: "0.0.0.0:9400"
+
+  prometheus:
+    image: docker.io/prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - /opt/monitoring/prometheus:/etc/prometheus:Z
+      - /opt/monitoring/data/prometheus:/prometheus:Z,U
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    network_mode: host
+
+  grafana:
+    image: docker.io/grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    user: "472"
+    ports:
+      - "3000:3000"
+    volumes:
+      - /opt/monitoring/data/grafana:/var/lib/grafana:Z,U
+      - /opt/monitoring/grafana/provisioning:/etc/grafana/provisioning:Z
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_DOMAIN: grafana-dev.chrest-studio.com
+      GF_SERVER_ROOT_URL: https://grafana-dev.chrest-studio.com
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+    network_mode: host

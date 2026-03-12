@@ -1,0 +1,207 @@
+groups:
+
+# ---------------------------------------------------------
+# GPU ALERTS
+# ---------------------------------------------------------
+- name: gpu_alerts
+  rules:
+
+  - alert: GPUOverTemperature
+    expr: DCGM_FI_DEV_GPU_TEMP > 85
+    for: 1m
+    labels:
+      severity: critical
+      category: gpu
+    annotations:
+      summary: "GPU overheating"
+      description: "GPU temperature above 85°C."
+
+  - alert: GPUMemoryExhaustion
+    expr: (DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_TOTAL) > 0.95
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "GPU memory nearly full"
+      description: "GPU memory usage above 95%."
+
+  - alert: GPUUtilizationDrop
+    expr: DCGM_FI_DEV_GPU_UTIL < 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "GPU utilization low"
+      description: "GPU utilization below 10% for 5 minutes."
+
+  - alert: GPUPowerLimit
+    expr: DCGM_FI_DEV_POWER_USAGE / DCGM_FI_DEV_POWER_MGMT_LIMIT > 0.95
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "GPU near power limit"
+      description: "GPU power usage above 95%."
+
+  - alert: GPUECCErrors
+    expr: DCGM_FI_DEV_ECC_DBE_VOL_TOTAL > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "GPU ECC error detected"
+      description: "Double-bit ECC error detected."
+
+  - alert: GPUMemoryFragmentation
+    expr: (DCGM_FI_DEV_FB_FREE / DCGM_FI_DEV_FB_TOTAL) < 0.1 and DCGM_FI_DEV_GPU_UTIL < 20
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Possible GPU memory fragmentation"
+      description: "Low GPU memory available but utilization low."
+
+  - alert: GPUPCIeErrors
+    expr: increase(DCGM_FI_DEV_PCIE_REPLAY_COUNTER[5m]) > 10
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "GPU PCIe errors detected"
+      description: "PCIe replay errors increasing."
+
+  - alert: GPUClockThrottle
+    expr: DCGM_FI_DEV_SM_CLOCK < 300
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "GPU clock throttling"
+      description: "GPU SM clock speed very low."
+
+# ---------------------------------------------------------
+# SYSTEM ALERTS
+# ---------------------------------------------------------
+- name: system_alerts
+  rules:
+
+  - alert: HighMemoryUsage
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          / node_memory_MemTotal_bytes > 0.9
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High RAM usage"
+      description: "System RAM above 90%."
+
+  - alert: MemoryLeakDetected
+    expr: increase(node_memory_MemActive_bytes[10m]) > 500000000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Possible memory leak"
+      description: "Active memory increasing rapidly."
+
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage above 90%."
+
+  - alert: HighLoadAverage
+    expr: node_load1 / count(node_cpu_seconds_total{mode="idle"}) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "System load high"
+      description: "Load average too high."
+
+# ---------------------------------------------------------
+# CONTAINER ALERTS
+# ---------------------------------------------------------
+- name: container_alerts
+  rules:
+
+  - alert: ContainerDown
+    expr: podman_container_state != 1
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Container stopped"
+      description: "A container is not running."
+
+  - alert: ContainerRestartLoop
+    expr: increase(podman_container_restart_count[5m]) > 3
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Container restart loop"
+      description: "Container restarted repeatedly."
+
+  - alert: ContainerHighMemoryUsage
+    expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.95
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container memory high"
+      description: "Container memory usage above 95%."
+
+  - alert: ContainerHighCPUUsage
+    expr: rate(container_cpu_usage_seconds_total[5m]) > 0.9
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container CPU high"
+      description: "Container CPU above 90%."
+
+  - alert: ContainerOOMKilled
+    expr: increase(container_oom_events_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Container OOMKilled"
+      description: "Container killed due to out-of-memory."
+
+# ---------------------------------------------------------
+# STORAGE ALERTS
+# ---------------------------------------------------------
+- name: storage_alerts
+  rules:
+
+  - alert: DiskSpaceLow
+    expr: node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.15
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Disk space low"
+      description: "Less than 15% disk space remaining."
+
+  - alert: DiskIOSaturation
+    expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Disk IO saturation"
+      description: "Disk IO utilization above 80%."
+
+  - alert: DiskWriteLatencyHigh
+    expr: rate(node_disk_write_time_seconds_total[5m]) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Disk write latency high"
+      description: "Disk write latency is high."
