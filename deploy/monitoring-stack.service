@@ -1,0 +1,15 @@
+[Unit]
+Description=AI Monitoring Stack
+After=podman.socket network-online.target
+Wants=podman.socket network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/monitoring
+ExecStart=/usr/bin/podman compose up -d
+ExecStop=/usr/bin/podman compose down
+RemainAfterExit=yes
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target
