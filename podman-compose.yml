@@ -63,3 +63,17 @@ services:
       GF_SERVER_ROOT_URL: https://grafana-dev.chrest-studio.com
       GF_SERVER_SERVE_FROM_SUB_PATH: "false"
     network_mode: host
+
+  alertmanager:
+    image: docker.io/prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+   # network_mode: host
+    ports:
+      - "9093:9093"
+    volumes:
+      - /opt/monitoring/alertmanager:/etc/alertmanager:Z
+      - /opt/monitoring/data/alertmanager:/alertmanager:Z,U
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager

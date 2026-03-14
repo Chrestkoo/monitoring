@@ -25,3 +25,9 @@ scrape_configs:
 
 rule_files:
   - alerts_ai_server.yml
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - 127.0.0.1:9093

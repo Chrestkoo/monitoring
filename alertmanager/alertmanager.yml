@@ -1,0 +1,295 @@
+global:
+  resolve_timeout: 5m
+
+############################################
+# Alert Routing Tree
+############################################
+
+route:
+  receiver: telegram-warning
+  group_by: ['alertname', 'category', 'instance', 'name', 'id']
+  group_wait: 15s
+  group_interval: 2m
+  repeat_interval: 4h
+
+  routes:
+
+  # -------------------------------
+  # Critical Alerts (immediate)
+  # -------------------------------
+  - matchers:
+      - severity="critical"
+    receiver: telegram-critical
+    group_wait: 0s
+    group_interval: 1m
+    repeat_interval: 30m
+
+  # -------------------------------
+  # GPU Alerts
+  # -------------------------------
+  - matchers:
+      - category="gpu"
+    receiver: telegram-gpu
+    group_interval: 1m
+    repeat_interval: 2h
+
+  # -------------------------------
+  # Container Alerts
+  # -------------------------------
+  - matchers:
+      - category="container"
+    receiver: telegram-container
+    group_interval: 1m
+    repeat_interval: 2h
+
+  # -------------------------------
+  # System Alerts
+  # -------------------------------
+  - matchers:
+      - category="system"
+    receiver: telegram-system
+    group_interval: 2m
+    repeat_interval: 4h
+
+  # -------------------------------
+  # Storage Alerts
+  # -------------------------------
+  - matchers:
+      - category="storage"
+    receiver: telegram-storage
+    group_interval: 2m
+    repeat_interval: 4h
+
+############################################
+# Receivers
+############################################
+
+receivers:
+
+# --------------------------------
+# Default warnings
+# --------------------------------
+- name: telegram-warning
+  telegram_configs:
+  - bot_token: "7864478893:AAHgQW2GrkioIa2gJft1XU-pgSgQzt028cQ"
+    chat_id: -1003851005596
+    api_url: "https://api.telegram.org"
+    send_resolved: true
+    parse_mode: ""
+    message: |
+      ⚠️ WARNING ALERT
+
+      Alert: {{ .CommonLabels.alertname }}
+      Category: {{ .CommonLabels.category }}
+      Instance: {{ .CommonLabels.instance }}
+      Total Alerts: {{ len .Alerts }}
+
+      {{- if .CommonAnnotations.summary }}
+      Summary: {{ .CommonAnnotations.summary }}
+      {{- end }}
+      {{- if .CommonAnnotations.description }}
+      Description: {{ .CommonAnnotations.description }}
+      {{- end }}
+
+      {{- range .Alerts }}
+      ------------------------
+      {{- if .Labels.name }}
+      Container: {{ .Labels.name }}
+      {{- end }}
+      {{- if .Labels.id }}
+      Container ID: {{ .Labels.id }}
+      {{- end }}
+      {{- if .Labels.image }}
+      Image: {{ .Labels.image }}
+      {{- end }}
+      Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+      {{- end }}
+
+# --------------------------------
+# Critical alerts
+# --------------------------------
+- name: telegram-critical
+  telegram_configs:
+  - bot_token: "7864478893:AAHgQW2GrkioIa2gJft1XU-pgSgQzt028cQ"
+    chat_id: -1003851005596
+    api_url: "https://api.telegram.org"
+    send_resolved: true
+    parse_mode: ""
+    message: |
+      🚨 CRITICAL ALERT 🚨
+
+      Alert: {{ .CommonLabels.alertname }}
+      Category: {{ .CommonLabels.category }}
+      Instance: {{ .CommonLabels.instance }}
+      Total Alerts: {{ len .Alerts }}
+
+      {{- if .CommonAnnotations.summary }}
+      Summary: {{ .CommonAnnotations.summary }}
+      {{- end }}
+      {{- if .CommonAnnotations.description }}
+      Description: {{ .CommonAnnotations.description }}
+      {{- end }}
+
+      {{- range .Alerts }}
+      ------------------------
+      {{- if .Labels.name }}
+      Container: {{ .Labels.name }}
+      {{- end }}
+      {{- if .Labels.id }}
+      Container ID: {{ .Labels.id }}
+      {{- end }}
+      {{- if .Labels.image }}
+      Image: {{ .Labels.image }}
+      {{- end }}
+      Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+      {{- end }}
+
+# --------------------------------
+# GPU alerts
+# --------------------------------
+- name: telegram-gpu
+  telegram_configs:
+  - bot_token: "7864478893:AAHgQW2GrkioIa2gJft1XU-pgSgQzt028cQ"
+    chat_id: -1003851005596
+    api_url: "https://api.telegram.org"
+    send_resolved: true
+    parse_mode: ""
+    message: |
+      🧠 GPU ALERT
+
+      Alert: {{ .CommonLabels.alertname }}
+      Category: {{ .CommonLabels.category }}
+      Instance: {{ .CommonLabels.instance }}
+      Total Alerts: {{ len .Alerts }}
+
+      {{- if .CommonAnnotations.summary }}
+      Summary: {{ .CommonAnnotations.summary }}
+      {{- end }}
+      {{- if .CommonAnnotations.description }}
+      Description: {{ .CommonAnnotations.description }}
+      {{- end }}
+
+      {{- range .Alerts }}
+      ------------------------
+      Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+      {{- if .Labels.gpu }}
+      GPU: {{ .Labels.gpu }}
+      {{- end }}
+      {{- if .Labels.UUID }}
+      UUID: {{ .Labels.UUID }}
+      {{- end }}
+      {{- end }}
+
+# --------------------------------
+# Container alerts
+# --------------------------------
+- name: telegram-container
+  telegram_configs:
+  - bot_token: "7864478893:AAHgQW2GrkioIa2gJft1XU-pgSgQzt028cQ"
+    chat_id: -1003851005596
+    api_url: "https://api.telegram.org"
+    send_resolved: true
+    parse_mode: ""
+    message: |
+      📦 CONTAINER ALERT
+
+      Alert: {{ .CommonLabels.alertname }}
+      Category: {{ .CommonLabels.category }}
+      Instance: {{ .CommonLabels.instance }}
+      Total Alerts: {{ len .Alerts }}
+
+      {{- if .CommonAnnotations.summary }}
+      Summary: {{ .CommonAnnotations.summary }}
+      {{- end }}
+      {{- if .CommonAnnotations.description }}
+      Description: {{ .CommonAnnotations.description }}
+      {{- end }}
+
+      {{- range .Alerts }}
+      ------------------------
+      {{- if .Labels.name }}
+      Container: {{ .Labels.name }}
+      {{- end }}
+      {{- if .Labels.id }}
+      Container ID: {{ .Labels.id }}
+      {{- end }}
+      {{- if .Labels.image }}
+      Image: {{ .Labels.image }}
+      {{- end }}
+      Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+      {{- end }}
+
+# --------------------------------
+# System alerts
+# --------------------------------
+- name: telegram-system
+  telegram_configs:
+  - bot_token: "7864478893:AAHgQW2GrkioIa2gJft1XU-pgSgQzt028cQ"
+    chat_id: -1003851005596
+    api_url: "https://api.telegram.org"
+    send_resolved: true
+    parse_mode: ""
+    message: |
+      🖥 SYSTEM ALERT
+
+      Alert: {{ .CommonLabels.alertname }}
+      Category: {{ .CommonLabels.category }}
+      Instance: {{ .CommonLabels.instance }}
+      Total Alerts: {{ len .Alerts }}
+
+      {{- if .CommonAnnotations.summary }}
+      Summary: {{ .CommonAnnotations.summary }}
+      {{- end }}
+      {{- if .CommonAnnotations.description }}
+      Description: {{ .CommonAnnotations.description }}
+      {{- end }}
+
+      {{- range .Alerts }}
+      ------------------------
+      Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+      {{- end }}
+
+# --------------------------------
+# Storage alerts
+# --------------------------------
+- name: telegram-storage
+  telegram_configs:
+  - bot_token: "7864478893:AAHgQW2GrkioIa2gJft1XU-pgSgQzt028cQ"
+    chat_id: -1003851005596
+    api_url: "https://api.telegram.org"
+    send_resolved: true
+    parse_mode: ""
+    message: |
+      💾 STORAGE ALERT
+
+      Alert: {{ .CommonLabels.alertname }}
+      Category: {{ .CommonLabels.category }}
+      Instance: {{ .CommonLabels.instance }}
+      Total Alerts: {{ len .Alerts }}
+
+      {{- if .CommonAnnotations.summary }}
+      Summary: {{ .CommonAnnotations.summary }}
+      {{- end }}
+      {{- if .CommonAnnotations.description }}
+      Description: {{ .CommonAnnotations.description }}
+      {{- end }}
+
+      {{- range .Alerts }}
+      ------------------------
+      Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+      {{- end }}
+
+############################################
+# Inhibition Rules
+############################################
+
+inhibit_rules:
+- source_matchers:
+    - severity="critical"
+  target_matchers:
+    - severity="warning"
+  equal:
+    - alertname
+    - instance
+    - name
+    - id

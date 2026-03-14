@@ -21,6 +21,7 @@ groups:
     for: 2m
     labels:
       severity: warning
+      category: gpu
     annotations:
       summary: "GPU memory nearly full"
       description: "GPU memory usage above 95%."
@@ -30,6 +31,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: gpu
     annotations:
       summary: "GPU utilization low"
       description: "GPU utilization below 10% for 5 minutes."
@@ -39,6 +41,7 @@ groups:
     for: 2m
     labels:
       severity: warning
+      category: gpu
     annotations:
       summary: "GPU near power limit"
       description: "GPU power usage above 95%."
@@ -48,6 +51,7 @@ groups:
     for: 1m
     labels:
       severity: critical
+      category: gpu
     annotations:
       summary: "GPU ECC error detected"
       description: "Double-bit ECC error detected."
@@ -57,6 +61,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: gpu
     annotations:
       summary: "Possible GPU memory fragmentation"
       description: "Low GPU memory available but utilization low."
@@ -66,6 +71,7 @@ groups:
     for: 2m
     labels:
       severity: critical
+      category: gpu
     annotations:
       summary: "GPU PCIe errors detected"
       description: "PCIe replay errors increasing."
@@ -75,6 +81,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: gpu
     annotations:
       summary: "GPU clock throttling"
       description: "GPU SM clock speed very low."
@@ -86,11 +93,13 @@ groups:
   rules:
 
   - alert: HighMemoryUsage
-    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
-          / node_memory_MemTotal_bytes > 0.9
+    expr: |
+      (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+      / node_memory_MemTotal_bytes > 0.9
     for: 5m
     labels:
       severity: critical
+      category: system
     annotations:
       summary: "High RAM usage"
       description: "System RAM above 90%."
@@ -100,6 +109,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: system
     annotations:
       summary: "Possible memory leak"
       description: "Active memory increasing rapidly."
@@ -109,6 +119,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: system
     annotations:
       summary: "High CPU usage"
       description: "CPU usage above 90%."
@@ -118,6 +129,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: system
     annotations:
       summary: "System load high"
       description: "Load average too high."
@@ -128,50 +140,85 @@ groups:
 - name: container_alerts
   rules:
 
+  # Container stopped
   - alert: ContainerDown
-    expr: podman_container_state != 1
+    expr: |
+      (podman_container_state != 1)
+      * on(id) group_left(name,image)
+      podman_container_info
     for: 1m
     labels:
       severity: critical
+      category: container
     annotations:
       summary: "Container stopped"
-      description: "A container is not running."
+      description: "Container {{ $labels.name }} ({{ $labels.id }}) is not running."
 
+  # Container restart loop
   - alert: ContainerRestartLoop
-    expr: increase(podman_container_restart_count[5m]) > 3
-    for: 1m
+    expr: |
+      (changes(podman_container_started_seconds[5m]) > 3)
+      * on(id) group_left(name,image)
+      podman_container_info
+    for: 2m
     labels:
       severity: critical
+      category: container
     annotations:
       summary: "Container restart loop"
-      description: "Container restarted repeatedly."
+      description: "Container {{ $labels.name }} ({{ $labels.id }}) restarted more than 3 times in 5 minutes."
 
+  # Container high memory usage
   - alert: ContainerHighMemoryUsage
-    expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.95
+    expr: |
+      (
+        (
+          podman_container_mem_usage_bytes
+          /
+          podman_container_mem_limit_bytes
+        ) > 0.90
+      )
+      * on(id) group_left(name,image)
+      podman_container_info
     for: 3m
     labels:
       severity: warning
+      category: container
     annotations:
-      summary: "Container memory high"
-      description: "Container memory usage above 95%."
+      summary: "Container memory usage high"
+      description: "Container {{ $labels.name }} ({{ $labels.id }}) memory usage above 90%."
 
+  # Container high CPU usage
   - alert: ContainerHighCPUUsage
-    expr: rate(container_cpu_usage_seconds_total[5m]) > 0.9
-    for: 3m
+    expr: |
+      (rate(podman_container_cpu_seconds_total[5m]) > 0.8)
+      * on(id) group_left(name,image)
+      podman_container_info
+    for: 5m
     labels:
       severity: warning
+      category: container
     annotations:
-      summary: "Container CPU high"
-      description: "Container CPU above 90%."
+      summary: "Container CPU usage high"
+      description: "Container {{ $labels.name }} ({{ $labels.id }}) CPU usage high."
 
+  # Container OOM killed recently
   - alert: ContainerOOMKilled
-    expr: increase(container_oom_events_total[5m]) > 0
+    expr: |
+      (
+        (podman_container_exit_code == 137)
+        and
+        ((time() - podman_container_exited_seconds) < 300)
+      )
+      * on(id) group_left(name,image)
+      podman_container_info
     for: 1m
     labels:
       severity: critical
+      category: container
     annotations:
-      summary: "Container OOMKilled"
-      description: "Container killed due to out-of-memory."
+      summary: "Container OOM killed"
+      description: "Container {{ $labels.name }} ({{ $labels.id }}) exited with code 137 in the last 5 minutes."
 
 # ---------------------------------------------------------
 # STORAGE ALERTS
@@ -184,6 +231,7 @@ groups:
     for: 5m
     labels:
       severity: critical
+      category: storage
     annotations:
       summary: "Disk space low"
       description: "Less than 15% disk space remaining."
@@ -193,6 +241,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: storage
     annotations:
       summary: "Disk IO saturation"
       description: "Disk IO utilization above 80%."
@@ -202,6 +251,7 @@ groups:
     for: 5m
     labels:
       severity: warning
+      category: storage
     annotations:
       summary: "Disk write latency high"
       description: "Disk write latency is high."
