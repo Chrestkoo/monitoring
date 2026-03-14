@@ -118,3 +118,10 @@ cache/
 
 podman-compose.override.yml
 docker-compose.override.yml
+
+
+########################################
+# AlertManager Runtime Data
+########################################
+
+data/alertmanager/

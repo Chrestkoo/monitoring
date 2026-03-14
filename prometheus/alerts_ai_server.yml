@@ -143,7 +143,7 @@ groups:
   # Container stopped
   - alert: ContainerDown
     expr: |
-      (podman_container_state != 1)
+      (podman_container_state == 3 or podman_container_state == 4 or podman_container_state == 5)
       * on(id) group_left(name,image)
       podman_container_info
     for: 1m
